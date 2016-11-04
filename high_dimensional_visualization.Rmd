@@ -1,0 +1,537 @@
+---
+title: "Higher Dimensional Continuous Data"
+author: "Zihan Guo"
+date: "November 2, 2016"
+output: 
+  html_document:
+    toc:  true
+    toc_float:  true
+    code_folding:  hide
+---
+
+#  Higher Dimensional Continuous Data
+
+***
+***
+
+#  Task 0
+
+**Organization, Themes, and HTML Output**
+
+Wickham R Style
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+# prepare data, library and theme. 
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(devtools)
+library(MASS)
+
+zihang_315_theme <- theme(
+    axis.text = element_text(size = 12, family = 'mono', colour = 'black'),
+    axis.title = element_text(size = 12, family = 'mono', colour = 'black'),
+    legend.title = element_text(size = 10, family = 'mono', colour = 'black'),
+    plot.title = element_text(size = 14,  family = 'mono', colour = 'black'),
+    legend.text = element_text(size = 8, family = 'mono', colour = 'black'),
+    legend.key = element_rect(fill = "white"),
+    legend.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(colour = "grey"),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "white")
+  )
+
+data(Cars93)
+olive <- fread("https://raw.githubusercontent.com/sventura/315-code-and-datasets/master/data/olive_oil.csv")
+
+```
+
+
+***
+***
+
+
+#  Task 1 {.tabset}
+
+##  Part (a)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Problem 1 a : Using textual annotations 
+ggplot(data = Cars93, aes(x = Fuel.tank.capacity, y = MPG.city)) + 
+  geom_text(aes(label = Cars93$Model)) + 
+  zihang_315_theme + 
+  ggtitle("Scatterplor of City MPG and Fuel Tank Capacity") + 
+  labs(x = "Fuel tank capacity (US gallons)", y = "City MPG (miles per US gallon)")
+
+```
+
+
+##  Part (b)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+# Problem 1 b : Changing Angle of Text
+# Q: how to change legand title? and to non-defualt color scheme? 
+ggplot(data = Cars93, aes(x = Fuel.tank.capacity, y = MPG.city)) + 
+  geom_text(aes(color = factor(Cars93$Type), label = Cars93$Model, angle = 30)) +
+  labs(colour="Type of Car") + 
+  zihang_315_theme + 
+  ggtitle("Scatterplor of City MPG and Fuel Tank Capacity") + 
+  labs(x = "Fuel tank capacity (US gallons)", y = "City MPG (miles per US gallon)") + 
+  scale_colour_manual(values=cbbPalette)
+```
+
+##  Part (c)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Problem 1 c : Size and Font Family
+
+ggplot(Cars93, aes(x = Fuel.tank.capacity, y = MPG.city), label = Model) + 
+  geom_text(aes(color = factor(Type), 
+                label = Model, angle = 30,  
+                size = RPM, 
+                fontface = 2)) + 
+  scale_size("RPM (revs per minute \nat maximum horsepower)") + 
+  labs(colour="Type of Car") + 
+  # scale_color_brewer(palette="Dark2") + 
+  zihang_315_theme + 
+  ggtitle("Scatterplor of City MPG and \nFuel Tank Capacity") + 
+  labs(x = "Fuel tank capacity (US gallons)", y = "City MPG (miles per US gallon)") +
+  scale_colour_manual(values=cbbPalette)
+
+```
+
+##  Part (d)
+
+We have included `Fuel.tank.capacity`, `MPG.city`, `RPM` and `Type` in our graph so there are 4 variables in total. According to our scatterplor of City MPG and Fuel Tank Capacity, we observe that City MPG and Fuel Tank Capacity are negatively correlated. As fuel tank capacity increases, City MPG value appears to decrease. We also observe that most of the compact cars (coded black) are scattered around the center of the plot. The main takeaway from this graph is that small fuel tank capacity vehicles with relatively high RPM tend to have higher city MPG. 
+
+
+***
+***
+
+
+#  Task 2 {.tabset}
+
+
+**More Text Annotations on Graphs**
+
+##  Part (a)
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+number_ticks <- function(n) {function(limits) pretty(limits, n)}
+# Citation: 
+# http://stackoverflow.com/questions/11335836/increase-number-of-axis-ticks-in-ggplot2 
+
+# Problem 2 a. 
+ggplot(data = olive, aes(region)) + 
+      geom_bar() + 
+      labs(y = "Count", x = "Region") + 
+      geom_text(stat = 'count', aes(label = ..count..), vjust = -0.3) + 
+      ggtitle("Distribution of Olive by Region") + 
+      zihang_315_theme + 
+      scale_y_continuous(breaks=number_ticks(10)) + 
+      scale_x_continuous(breaks=number_ticks(10))
+
+```
+
+##  Part (b)
+
+```{r, warning = F, message = F}
+
+#  Problem 2 b: 
+height <- table(olive$area)
+
+ggplot(data = olive, aes(area)) + 
+      geom_bar(fill = "light grey") + 
+      labs(y = "Count", x = "Area") + 
+      geom_text(stat = 'count', aes(label = ..count..), y = height/2) + 
+      ggtitle("Distribution of Olive by Area") + 
+      zihang_315_theme + 
+      scale_y_continuous(breaks=number_ticks(3)) + 
+      scale_x_continuous(breaks=number_ticks(3))
+
+```
+
+##  Part (c)
+
+```{r, warning = F, message = F}
+
+#  Your code for part (c) here
+ggplot(data = olive, aes(area)) + 
+      geom_bar(fill = "light grey") + 
+      labs(y = "Count", x = "Area") + 
+      geom_text(stat = 'count', 
+                aes(label = scales::percent((..count..)/sum(..count..))), 
+                y = height/2) + 
+      ggtitle("Distribution of Olive by Area") + 
+      zihang_315_theme + 
+      scale_y_continuous(breaks=number_ticks(3)) + 
+      scale_x_continuous(breaks=number_ticks(3))
+
+```
+
+***
+***
+
+
+
+#  Task 3  {.tabset}
+
+**2D-KDEs with Contour Plots and Adjusted Bandwidths**
+
+##  Part A
+
+```{r, message=FALSE, warning=FALSE}
+
+
+olive$area <- factor(olive$area)
+olive$region <- factor(olive$region)
+
+olive_cont <- subset(olive, 
+                     select = c(palmitic, palmitoleic, stearic, oleic, linoleic,
+                                linolenic, arachidic, eicosenoic))
+olive_cont_scale <- scale(x = olive_cont)
+dist_olive <- dist(x = olive_cont_scale)
+olive_mds <- cmdscale(dist_olive, k = 2)
+olive_mds <- as.data.frame(olive_mds)
+colnames(olive_mds) <- c("mds_coordinate_1", "mds_coordinate_2")
+olive_mds <- mutate(olive_mds, 
+                    area = as.factor(olive$area), 
+                    region = as.factor(olive$region))
+
+
+```
+
+##  Part B
+
+```{r, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_density2d(aes(x = mds_coordinate_2, y = mds_coordinate_1)) + 
+  geom_point(aes(y = mds_coordinate_2, x = mds_coordinate_1)) + zihang_315_theme + 
+  labs(x = "Coordinate 1", y = "Coordinate 2") +
+  ggtitle("Contour Plot of Olive MDS")
+
+```
+
+
+##  Part C
+
+```{r, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_density2d(aes(x = mds_coordinate_2, y = mds_coordinate_1)) + 
+  geom_point(aes(x = mds_coordinate_2, y = mds_coordinate_1, 
+                 color = area, shape = region), size = 3) + 
+  ggtitle("Countour Map of MDS Coordinates") + 
+  scale_shape_manual(values = as.character(sort(unique(olive_mds$region)))) + 
+  labs(x = "Coordinate 1", y = "Coordinate 2", color = "Area(1, 2, 3)") + 
+  zihang_315_theme
+
+```
+
+
+##  Part D
+
+```{r, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_density2d(h = c(1,1), aes(x = mds_coordinate_2, y = mds_coordinate_1)) + 
+  geom_point(aes(x = mds_coordinate_2, y = mds_coordinate_1, 
+                 color = area, shape = region), size = 1) + 
+  ggtitle("Countour Map of MDS Coordinates")  + zihang_315_theme + 
+  labs(x = "Coordinate 1", y = "Coordinate 2", color = "Area(1, 2, 3)")
+
+```
+
+##  Part E
+
+```{r, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_density2d(h = c(5, 5), aes(x = mds_coordinate_2, y = mds_coordinate_1)) + 
+  geom_point(aes(x = mds_coordinate_2, y = mds_coordinate_1, 
+                 color = area, shape = region), size = 1) + 
+  ggtitle("Countour Map of MDS Coordinates") + 
+  labs(x = "Coordinate 1", y = "Coordinate 2", color = "Area(1, 2, 3)") + zihang_315_theme
+
+```
+
+##  Part F
+
+I prefer the default bandwith. The smaller bandwidth is too much because it shows unnecessary details whereas the larger bandwidth omits important local features. 
+
+##  Part G
+
+We choose `h = c(2, 1)` because x has relatively larger range than y. From experimenting several pairs of bandiwths, we have finalized on `h = c(2, 1)` because it shows both significant clusters and also two local clusters that we might need to worry about. This offers a nice middle grounds as we won't miss any significant information about potential clusters of the data.
+
+```{r, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_density2d(h = c(2, 1), aes(x = mds_coordinate_1, y = mds_coordinate_2)) + 
+  geom_point(aes(x = mds_coordinate_1, y = mds_coordinate_2, 
+                 color = area, shape = region), size = 3) + 
+  ggtitle("Countour Map of MDS Coordinates") + 
+  scale_shape_manual(values = as.character(sort(unique(olive_mds$region)))) + 
+  scale_colour_manual(values = c("blue", "light blue", "yellow"))
+
+```
+
+
+***
+***
+
+
+#  Task 4 {.tabset}
+
+**2D-KDEs with Heat Maps and Three-Color Gradients**
+
+## Part A
+
+```{r, message=FALSE, warning=FALSE}
+
+library(scales)
+ggplot(data = olive_mds) + 
+  stat_density2d(h = c(2, 1), aes(fill = ..density.., 
+                     x = mds_coordinate_1, y = mds_coordinate_2), 
+                 geom = "tile", contour = F) + 
+  scale_fill_gradient2(mid= "orange", high ="red", low="white", midpoint = 0.05) + 
+  theme_classic() + 
+  zihang_315_theme + 
+  geom_point(aes(x = mds_coordinate_1, y = mds_coordinate_2, 
+                 color = area, shape = region), size = 3) +
+  scale_shape_manual(values = as.character(sort(unique(olive_mds$region)))) + 
+  scale_colour_manual(values = c("blue", "light blue", "yellow")) + 
+  labs(color = "Area (1, 2, 3)", x = "Coordinate 1", y = "Coordinate 2") + 
+  ggtitle("Heat Map of Two Dimensional \n DKEs")
+
+```
+
+## Part B
+
+We chose white color as the lowest density because it is our background color. We chose a dark color as the highest density because it effectively shows where the cluster is. I chose 0.05 as the midpoint parameter because 0 is our lowest possile density and 0.100 is our highest density. Therefore, we want to choose a middle value which is 0.05. If we increase the middle value, the overall color becomes lighter. If we decrease the middle value, the overall color becomes darker. We chose to use blue, light blue and yellow to allow even color blinded people to view our graph. 
+
+## Part C
+
+I would prefer the heat graph because heat map is more effective in showing the density. Also, it avoid the distraction of having too many lines on the graph. By reducing data ink, it becomes easier for the readers to understand where the significant clusters are. 
+
+***
+***
+
+
+
+#  Task 5 {.tabset}
+
+**Hierarchical Clustering and Dendrograms**
+
+## Part A
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+olive_cont <- subset(olive, 
+                     select = c(palmitic, palmitoleic, stearic, oleic, linoleic,
+                                linolenic, arachidic, eicosenoic))
+olive_cont_scale <- scale(x = olive_cont)
+dist_olive <- dist(x = olive_cont_scale)
+
+```
+
+## Part B
+
+In the hierarchical clusterig object, we find the following: merge, height, order, labels, method, call and dist.method. These are basically components. `hc_olive_complete$method` is the cluster that has been used: "complete". 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+hc_olive_complete <- hclust(dist_olive, method = "complete")
+names(hc_olive_complete)
+hc_olive_complete$method
+
+```
+
+
+## Part C
+
+`plot()` uses dendrogram to visualize hierarchical clustering results.
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+plot(hc_olive_complete)
+
+```
+
+## Part D
+
+The maximum distance at which two groups of observations are linked in this dataset is about 10.5. 
+
+## Part E
+
+We estimate that about two third of the data on the left and one third on the right branch. 
+
+## Part F
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+labels_complete_2 <- cutree(hc_olive_complete, k = 2)
+typeof(labels_complete_2)
+length(labels_complete_2)
+
+```
+
+`labels_complete_2` has type of Integer and there are 572 elements contained in `labels_complete_2`. 
+
+## Part G
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+table(labels_complete_2) / nrow(olive)
+
+```
+
+32.34% are in the first group and 67.65% are in the second group at the final iteration of clustering. 
+
+## Part H 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+labels_complete_3 <- cutree(hc_olive_complete, k = 3)
+olive_cont <- subset(olive, 
+                     select = c(palmitic, palmitoleic, stearic, oleic, linoleic,
+                                linolenic, arachidic, eicosenoic))
+olive_cont_scale <- scale(x = olive_cont)
+dist_olive <- dist(x = olive_cont_scale)
+olive_mds <- cmdscale(dist_olive, k = 2)
+olive_mds <- as.data.frame(olive_mds)
+colnames(olive_mds) <- c("mds_coordinate_1", "mds_coordinate_2")
+olive_mds <- mutate(olive_mds, 
+                    area = as.factor(olive$area), 
+                    region = as.factor(olive$region),
+                    labels_complete_3 = as.factor(labels_complete_3))
+
+
+```
+
+Based on our graphic output, we observe that all area 2 (coded green) are label 2 (coded 2). However, not all label 2 are in area 2 (coded green). A large portion of label 2 data are also in area 1 (code red). For area 3 data, they are either label 1 or label 3. Therefore, we see some associations between area and labels. Area 1 (coded red) and Area 3 (coded blue) are split apart in the clustering results as we have discussed. 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+ggplot(data = olive_mds) + 
+  geom_point(aes(color = area, shape = labels_complete_3,
+                 x = mds_coordinate_1, y = mds_coordinate_2), size = 5) + 
+  scale_shape_manual(values = as.character(sort(unique(olive_mds$area)))) + 
+  ggtitle("Scatterplot of Coordinate 1 and Coordinate 2") + zihang_315_theme + 
+  xlab("Coordinate 1") + ylab("Coordinate 2") + 
+  labs(colour="Area (1, 2, 3)") 
+
+```
+
+
+## Part I
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+library(dendextend)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+data(Cars93)
+colorblind_palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+olive_cont <- subset(olive, 
+                     select = c(palmitic, palmitoleic, stearic, oleic, linoleic,
+                                linolenic, arachidic, eicosenoic))
+
+olive_mds$regions <- factor(olive_mds$region,
+                            levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+                            labels = c('northern Apulia', 'southern Apulia', 
+                                       'Calabria', 'Sicily', 'inland Sardinia',
+                                       'coast Sardinia', 'eastern',
+                                       'western Liguria', 'Umbria'))
+
+get_colors <- function(x, palette = colorblind_palette) palette[match(x, unique(x))]
+
+dend <- olive_cont %>% scale %>% 
+  dist %>% hclust %>% as.dendrogram %>% 
+  set("labels", olive_mds$regions) %>% 
+  set("labels_col", get_colors(olive_mds$labels_complete_3)) 
+
+ggd1 <- as.ggdend(dend)
+ggplot(ggd1, horiz = TRUE, theme = zihang_315_theme) +
+  xlab("Dendrogram of Olive MDS Region Name") + 
+  ylab("Pairwise Euclidean Distance")
+
+```
+
+## Part J 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+dend <- olive_cont %>% scale %>% 
+  dist %>% hclust %>% as.dendrogram %>% 
+  set("branches_k_color", olive_mds$regions) %>% 
+  set("labels_col", get_colors(olive_mds$labels_complete_3))
+
+ggd1 <- as.ggdend(dend)
+ggplot(ggd1, horiz = TRUE, theme = zihang_315_theme) +
+  xlab("Dendrogram of Olive MDS Region Name") + 
+  ylab("Pairwise Euclidean Distance")
+
+```
+
+
+***
+***
+
+#  Task 6 {.tabset}
+
+**Criticize the Lab 08 Oral Evaluation Graphic**
+
+## Good Quality
+
+First, the Radar Chart of Messi Ronaldo Suarez is effective is seeing which variables have similar values. The visualization also allows quick identification of outliers. Second, the Radar Chart is useful for identifying which variables are scoring high. This quality makes it ideal to display performance. 
+
+## Bad Quality 
+
+First, in our graph, we have three polygons in one Radar Chart. This makes it confusing and difficult to comprehend. Second, we have 11 variables in the graph and it creates too many axies and make it hard to read. 
+
+## Distortion Identification
+
+There are distortion in the plot. Notice that along the axis, the unit for each variable is different. For example, non-penalty goals ranges from 0.30 to 1.50 and key passed ranges from 0.8 to 4.0. 
+
+***
+***
+
+#  BONUS
+
+**Beyond Default Pairs Plots**
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+
+library(GGally)
+olive_sub <- subset(olive, 
+                    select = c(palmitic, stearic, oleic))
+
+olive_sub <- mutate(olive_sub, 
+                    area = as.factor(olive$area), 
+                    region = as.factor(olive$region))
+                    
+ggpairs(data = olive_sub,
+        upper = list(continuous = "density",
+                     discrete = "ratio",
+                     combo = "facetdensity"),
+        lower = list(continuous = "cor",
+                     discrete = "ratio",
+                     combo = "box"),
+        title = "Pairplot")
+
+```
+
+
+
+***
+***
