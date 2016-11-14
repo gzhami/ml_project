@@ -27,7 +27,7 @@ total infection and limited infection can be found in infection.py file. Notice 
 As a disclaimer, although I have tried my best to cover all edge cases in the program, if you were to construct your own data file, 
 make sure to pay sepcial attention to my project description and follow the specification closely. You may also want to read how
 I load and process file in the first function of infection.py file. The visualization.pdf file is sketched and is designed to aid 
-understanding when running my program. I have also created a Youtube Video to explain this project. The link can be found below:
+understanding when running my program. I have also created a Youtube Video to explain this project. The link can be found below: https://youtu.be/G8yNr1DOCDE
 
 
 ### 3. Library and Package
