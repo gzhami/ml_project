@@ -5,6 +5,7 @@
   1. Concept Learning [Python] 
   2. Artificial Neural Network [Python]
   3. Hidden Markov Model [Python] 
+  4. Capital One Data Science Competiton [ R ]
  
 2. Data Visualization Projects 
   1. High Dimensional Data Visualizations [ R ] 
@@ -14,4 +15,4 @@
   2. Infection Algorithm [Python] 
 
 4. A.I. Related Projects 
-  1. Alpha-beta pruning Modules [SML] 
+  1. Alpha-beta pruning Modules [SML]
