@@ -1,0 +1,176 @@
+---
+title: "Capital One Bad Loan Prediction"
+author: "Zihan Guo"
+output:
+  html_document:
+    code_folding: show
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+### Data Processing 
+
+Observing the provided training dataset, we found columns such as `ID`, `member_id`, `url` and `zip_code` are irrelevant in predicting the `load_status`. We, therefore, removed these variables in our initial data cleaning. In addition, we have transformed character class variables such as `emp_length` into numeric values. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+
+# load data
+library(reshape2)
+library(reshape)
+library(ggplot2)
+library(randomForest)
+train <- read.csv("train.csv")
+theme <- theme(
+    axis.text = element_text(size = 10, family = 'mono', colour = 'black'),
+    axis.title = element_text(size = 10, family = 'mono', colour = 'black'),
+    legend.title = element_text(size = 8, family = 'mono', colour = 'black'),
+    plot.title = element_text(size = 12,  family = 'mono', colour = 'black'),
+    plot.subtitle = element_text(size = 8,  family = 'mono', colour = 'black'),
+    legend.text = element_text(size = 8, family = 'mono', colour = 'black'),
+    legend.key = element_rect(fill = "white"),
+    legend.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(colour = "grey"),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "white")
+  )
+
+#clean data
+train_clean <- train[,-c(1,2,5,10,11,16,17,18,19,21,22,23,26)]
+train_clean$good <- 0
+train_clean$good[which(train$loan_status == "Fully Paid")] <- 1
+train_clean$good[which(train$loan_status == "In Grace Period")] <- 1
+train_clean$good[which(train$loan_status == "Current")] <- 1
+train_clean$emp_length <- as.numeric(gsub("([0-9]+).*$", "\\1", train_clean$emp_length))
+train_clean <- na.omit(train_clean)
+
+#convert percentage to numeric
+train_clean$int_rate <- as.numeric(sub("%", "", train_clean$int_rate))
+train_clean$revol_util <- as.numeric(sub("%", "", train_clean$revol_util))
+```
+
+### Visualization Numeric Distribution
+
+Next, we visualized the Density Distribution for each numeric predictors by collapsing numeric variables in our old data frame into the value column in the new data frame with the `melt` function. We observed that numeric variables such that `int_rate`, `funded_amnt`, `load_amnt` and `revol_util` have obvious differentiating ability between good loan and bad loan. However, variables such as `dti`, `open_acc` and `total_`acc` showed little difference in their distribution plots below. Therefore, using the density distribution we removed the insignificant terms from our model. 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# melting data for variable selection
+train_clean$good=as.numeric(train_clean$good)
+numeric<-sapply(train_clean,is.numeric)
+df.collapsed<-melt(train_clean[,numeric], id.vars = "good")
+
+p <- ggplot(aes(x=value, group = factor(good), colour =factor(good)),
+           data=df.collapsed)
+
+p + geom_density()+
+    facet_wrap(~variable, scales="free") + theme + 
+    ggtitle("Density Distribution for each Predictors") + 
+    theme(plot.title = element_text(hjust = 0.5))
+
+#clean data
+train_clean <- train[,-c(1,2,5,9,11,16,17,18,19,21,22,26,28,29,31)]
+train_clean$good <- 1
+train_clean$good[which(train$loan_status == "Fully Paid")] <- 0
+train_clean$good[which(train$loan_status == "In Grace Period")] <- 0
+train_clean$good[which(train$loan_status == "Current")] <- 0
+
+# convert string to int
+train_clean$emp_length <- as.numeric(gsub("([0-9]+).*$", "\\1", train_clean$emp_length))
+
+train_clean$term <- as.numeric(gsub("([0-9]+).*$", "\\1", train_clean$term))
+train_clean$emp_length[which(is.na(train_clean$emp_length))] <- 0
+train_clean <- na.omit(train_clean)
+
+#convert percentage to numeric
+train_clean$int_rate <- as.numeric(sub("%", "", train_clean$int_rate))
+train_clean$revol_util <- as.numeric(sub("%", "", train_clean$revol_util))
+
+```
+
+### Random Forest Algorithm 
+
+We have decided to use random forest algorithm to predict bad loan for our dataset because it has better performance than logistic regression. Especially, it is superior in identifying the bad load than other models. For a randomly selected subset of our data, logistic regression fails in predicting `1(bad load)` for almost all time. Since our intent is to identify bad load from the data, using random forest algrothm gives us an upper hand. 
+
+```{r, warning=FALSE}
+
+# random free algorithm with a specific cut off determined by our performance analysis
+
+train_clean_sub <- train_clean[sample(x = 1:nrow(train_clean), size = 2000),]
+rf <- randomForest((good) ~ ., data=train_clean_sub,ntree=500, mtry = 3,cutoff = c(0.6,0.4), importance = TRUE)
+
+```
+
+### Performance Analysis 
+
+From the cut-off performance plot below, we observed that between cut off value of `0.25` to `0.4`, we can obtain the lowest possible Brier Score. However, notice that with a strict cut-off, our error is less but we won't be as good as identify the bad load from our dataset. In addition, as the number of tree increase, the performance increases first but then decreases. We observe the optimal tree number is somewhere between 400 to 500. 
+
+```{r, warning=FALSE}
+
+# for subset of our cleaned data to enhance visualization
+train_clean_sub <- train_clean[sample(x = 1:nrow(train_clean), size = 1000),]
+train_clean_test<-train_clean[sample(x=1:nrow(train_clean),size=1000),]
+train_clean_test$good=as.numeric(train_clean_test$good)
+brier=rep(0,10)
+for (i in seq(1,10,by = 1)){
+  tree.number=i*100
+  rf <- randomForest((good) ~ ., data=train_clean_sub,ntree=tree.number,
+                     mtry = 3,cutoff = c(0.6,0.4), importance = TRUE)
+  rf.predict=predict(rf, newdata = train_clean_test)
+  bscore=mean((rf.predict-train_clean_test$good)^2)
+  brier[i]=bscore}
+b2<-rep(0,10)
+
+#table(train_clean$good)
+for (i in seq(0,1,by = 0.1)){
+  left=i
+  rf <- randomForest((good) ~ ., data=train_clean_sub,ntree=tree.number,
+                     mtry = 3,cutoff = c(left,1-left), importance = TRUE)
+  rf.predict=predict(rf, newdata = train_clean_test)
+  bscore=mean((rf.predict-train_clean_test$good)^2)
+  b2[i]=bscore}
+
+x <- c(1:10)*100
+y <- brier
+df <- data.frame(x = x, y = y)
+library(ggplot2)
+
+# ntree
+ggplot(df, aes(x = x, y = y)) +
+  geom_point() + 
+  geom_smooth(se = FALSE) +
+  labs(x = "Tree Number", y = "Brier Score") +
+  ggtitle("Performance vs. Tree Number") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme 
+
+#cutoff
+x <- c(1:10)/10.0
+y <- b2
+df <- data.frame(x = x, y = y)
+ggplot(df, aes(x = x, y = y)) +
+  geom_point() + 
+  geom_smooth(se = FALSE) +
+  labs(x = "Cutoff", y = "Brier Score") +
+  ggtitle("Performance vs. Cut off") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme
+
+```
+
+### Sample Tree Demonstration
+
+For visualization purpose, we have included a sample tree from our random forest final model. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library("party")
+x <- ctree(good ~ ., data=train_clean_sub)
+plot(x, type="simple")
+
+```
+
+
+
